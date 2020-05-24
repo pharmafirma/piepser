@@ -6,15 +6,18 @@ namespace Continuity_Tester
     class Program
     {
         static SerialPort port;
+        static string info = "Continuity tester / circuit indicator - https://github.com/pharmafirma/piepser";
         static string intro = "This program allows you to (ab)use any serial port as an electrical continuity tester. ";
         static string hint = "Use the RX and TX pins of {0} as your test probes. Press Ctrl+C to close the program. ";
         static string disclaimer = "*** Don't fry your computer: NEVER MEASURE CIRCUITS UNDER VOLTAGE! ***";
         static contactState lastState = contactState.UGLY;
         static contactState state = contactState.UGLY;
+        static uint[] statistics = { 0, 0, 0, 0 };
 
         static void Main(string[] args)
         {
             // say hello
+            Console.WriteLine(info);
             Console.WriteLine(intro);
             Console.WriteLine(hint, "your serial port");
             Console.WriteLine(disclaimer);
@@ -48,6 +51,7 @@ namespace Continuity_Tester
                 try
                 {
                     port.WriteLine("42 ");
+                    statistics[(int)contactState.UGLY]++;
                     try
                     {
                         string readstring = port.ReadLine();
@@ -55,11 +59,13 @@ namespace Continuity_Tester
                         {
                             // entire message received - good contact
                             state = contactState.GOOD;
+                            statistics[(int)contactState.GOOD]++;
                         }
                         else
                         {
                             // something else received - bad contact
                             state = contactState.BAD;
+                            statistics[(int)contactState.BAD]++;
 
                         }
                     }
@@ -67,6 +73,7 @@ namespace Continuity_Tester
                     {
                         // nothing received - no contact
                         state = contactState.NONE;
+                        statistics[(int)contactState.NONE]++;
                     }
                 }
                 catch
@@ -76,7 +83,7 @@ namespace Continuity_Tester
                 }
 
                 // print new state to console
-                if (state != lastState)
+                if (state != lastState || statistics[(int)contactState.UGLY] % 100 == 0)
                 {
                     switch (state)
                     {
@@ -146,6 +153,12 @@ namespace Continuity_Tester
             Console.Clear();
             Console.WriteLine(hint, port.PortName);
             Console.WriteLine(disclaimer);
+            Console.WriteLine("Statistics: Tests performed = {0}, good contact = {1}, no contact = {2}, bad contact = {3}",
+                statistics[(int)contactState.UGLY],
+                statistics[(int)contactState.GOOD],
+                statistics[(int)contactState.NONE],
+                statistics[(int)contactState.BAD]
+                );
             Console.WriteLine();
         }
 
@@ -153,7 +166,7 @@ namespace Continuity_Tester
         {
             GOOD = 0,
             BAD = 1,
-            UGLY = 2, // not initialised
+            UGLY = 2, // not initialised, also used for the sent counter
             NONE = 3, // no contact
             ERROR,
         }
